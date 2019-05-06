@@ -14,8 +14,10 @@ target:
   4 motorRight1
   5 motorRight2
 
+openration:
+
 esp(1):
-  1 power: (true - false)
+  1 powerOn: (true - false)
 
 motoren(2,3,4,5):
   1 speed: (0 - 100)
