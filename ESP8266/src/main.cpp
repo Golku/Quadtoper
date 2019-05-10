@@ -9,42 +9,54 @@ const char* password = "heWhoHeals15!";
 int incomingCommand = 0;
 DynamicJsonDocument readDoc(1024);
 DynamicJsonDocument writeDoc(1024);
-int status;
+bool connected;
+int outputType;
+bool power;
+int speed;
+long timer;
 
 // Globals
 WebSocketsServer webSocket = WebSocketsServer(80);
+
+
+void sendJson(){
+
+  writeDoc["outputType"] = "1";
+  writeDoc["powerOn"]   = true;
+  writeDoc["speed"]   = speed;
+
+  size_t outputSize = 256;
+  char* output = new char[outputSize];
+  
+  serializeJson(writeDoc, output, outputSize);
+
+  uint8_t * dataOut = (uint8_t *)output;
+
+  webSocket.sendTXT(0, dataOut);
+}
 
 void receiveJson(uint8_t * data){
 
   deserializeJson(readDoc, data);
 
-  status = readDoc["status"];
-  Serial.println(status);
+  outputType = readDoc["outputType"];
+  power = readDoc["power"];
+  Serial.println(outputType);
+  Serial.println(power);
 
-  if(status == 1){
+  if(outputType == 1){
     Serial.println("Ai");
   }else{
     Serial.println("Nai");
   }
-}
 
-uint8_t * sendJson(){
+  if(power){
+    Serial.println("power on");
+  }else{
+    Serial.println("power off");
+  }
 
-  writeDoc["sensor"] = "gps";
-  writeDoc["time"]   = 1351824120;
-
-  JsonArray data = writeDoc.createNestedArray("data");
-  data.add(48.756080);
-  data.add(2.302038);
-
-  char* output;
-  size_t outputSize = 256;
-
-  serializeJson(writeDoc, output, outputSize);
-
-  uint8_t * h = (uint8_t *)atoi(output);
-
-  return h;
+  //sendJson();
 }
 
 // Called when receiving any WebSocket message
@@ -59,6 +71,7 @@ void onWebSocketEvent(uint8_t num,
     // Client has disconnected
     case WStype_DISCONNECTED:
       Serial.printf("[%u] Disconnected!\n", num);
+      connected = false;
       break;
 
     // New client has connected
@@ -67,24 +80,38 @@ void onWebSocketEvent(uint8_t num,
         IPAddress ip = webSocket.remoteIP(num);
         Serial.printf("[%u] Connection from ", num);
         Serial.println(ip.toString());
+        connected = true;
+        timer = millis();
       }
       break;
 
     // Echo text message back to client
     case WStype_TEXT:
       Serial.printf("[%u] Text: %s\n", num, payload);
-
-      webSocket.sendTXT(num, sendJson());
+      receiveJson(payload);
       break;
 
     // For everything else: do nothing
     case WStype_BIN:
+      Serial.printf("BIN");
+      break;
     case WStype_ERROR:
+      Serial.printf("error");
+      break;
     case WStype_FRAGMENT_TEXT_START:
+      Serial.printf("TEXT_start");
+      break;
     case WStype_FRAGMENT_BIN_START:
+      Serial.printf("BIN_start");
+      break;
     case WStype_FRAGMENT:
+      Serial.printf("feagment");
+      break;
     case WStype_FRAGMENT_FIN:
+      Serial.printf("fin");
+      break;
     default:
+      Serial.printf("default");
       break;
   }
 }
@@ -116,4 +143,14 @@ void loop() {
 
   // Look for and handle WebSocket data
   webSocket.loop();
+
+  if(connected){
+    if(millis() > timer + 1000){
+      timer = millis();
+      speed = random(100);
+      //Serial.println(speed);
+      //sendJson();
+    }
+  }
+  
 }
