@@ -6,24 +6,41 @@
 const char* ssid = "Jason's Happy Place";
 const char* password = "heWhoHeals15!";
 
-int incomingCommand = 0;
 DynamicJsonDocument readDoc(1024);
 DynamicJsonDocument writeDoc(1024);
+
 bool connected;
-int outputType;
-bool power;
-int speed;
 long timer;
+
+int commandType;
+
+bool powerOn;
+bool pidOn;
+
+int motorIndex;
+int motorVal;
+int motorFLVal;
+int motorFRVal;
+int motorBLVal;
+int motorBRVal;
 
 // Globals
 WebSocketsServer webSocket = WebSocketsServer(80);
 
+/*
+command:
+  1 power (powerOn: true/false)
+  2 pid   (pidOn: true/false)
+  3 motor (motorIndex: 0,1,2,3 - motorVal: 0-100)
+*/
 
 void sendJson(){
 
   writeDoc["outputType"] = "1";
-  writeDoc["powerOn"]   = true;
-  writeDoc["speed"]   = speed;
+  writeDoc["motorFLVal"]   = motorFLVal;
+  writeDoc["motorFRVal"]   = motorFRVal;
+  writeDoc["motorBLVal"]   = motorBLVal;
+  writeDoc["motorBRVal"]   = motorBRVal;
 
   size_t outputSize = 256;
   char* output = new char[outputSize];
@@ -35,27 +52,56 @@ void sendJson(){
   webSocket.sendTXT(0, dataOut);
 }
 
+void changeMotorVal(){
+  switch (motorIndex){
+    case 0:
+      motorFLVal = motorVal;
+      Serial.print("motorFLVal: ");
+      Serial.print(motorVal);
+      break;
+    case 1:
+      motorFRVal = motorVal;
+      Serial.print("motorFRVal: ");
+      Serial.print(motorVal);
+      break;
+    case 2:
+      motorBLVal = motorVal;
+      Serial.print("motorBLVal: ");
+      Serial.print(motorVal);
+      break;  
+    case 3:
+      motorBRVal = motorVal;
+      Serial.print("motorBRVal: ");
+      Serial.print(motorVal);
+      break;
+  }
+}
+
 void receiveJson(uint8_t * data){
 
   deserializeJson(readDoc, data);
+  
+  commandType = readDoc["commandType"];
 
-  outputType = readDoc["outputType"];
-  power = readDoc["power"];
-  Serial.println(outputType);
-  Serial.println(power);
-
-  if(outputType == 1){
-    Serial.println("Ai");
-  }else{
-    Serial.println("Nai");
+  switch (commandType){
+    case 1:
+      powerOn = readDoc["powerOn"];
+      Serial.print("Power: ");
+      Serial.print(powerOn);
+      break;
+    case 2:
+      pidOn = readDoc["pidOn"];
+      Serial.print("pid: ");
+      Serial.print(pidOn);
+      break;
+    case 3:
+      motorIndex = readDoc["motorIndex"];
+      motorVal = readDoc["motorVal"];
+      changeMotorVal();
+      break;
   }
-
-  if(power){
-    Serial.println("power on");
-  }else{
-    Serial.println("power off");
-  }
-
+  
+  Serial.println(" ");
   //sendJson();
 }
 
@@ -87,7 +133,7 @@ void onWebSocketEvent(uint8_t num,
 
     // Echo text message back to client
     case WStype_TEXT:
-      Serial.printf("[%u] Text: %s\n", num, payload);
+      //Serial.printf("[%u] Text: %s\n", num, payload);
       receiveJson(payload);
       break;
 
@@ -134,6 +180,14 @@ void setup() {
   Serial.print("My IP address: ");
   Serial.println(WiFi.localIP());
 
+  powerOn = false;
+  pidOn = false;
+
+  motorFLVal = 0;
+  motorFRVal = 0;
+  motorBLVal = 0;
+  motorBRVal = 0;
+
   // Start WebSocket server and assign callback
   webSocket.begin();
   webSocket.onEvent(onWebSocketEvent);
@@ -144,13 +198,17 @@ void loop() {
   // Look for and handle WebSocket data
   webSocket.loop();
 
-  if(connected){
-    if(millis() > timer + 1000){
-      timer = millis();
-      speed = random(100);
-      //Serial.println(speed);
-      //sendJson();
+  if(powerOn){
+    if(pidOn){
+      if(millis() > timer + 1000){
+        timer = millis();
+        motorFLVal = random(100);
+        motorFRVal = random(100);
+        motorBLVal = random(100);
+        motorBRVal = random(100);
+        sendJson();
+      }
     }
   }
-  
+
 }
