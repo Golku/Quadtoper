@@ -3,8 +3,11 @@
 #include <ArduinoJson.h>
 
 // Constants
-const char* ssid = "Jason's Happy Place";
-const char* password = "heWhoHeals15!";
+// const char* ssid = "Jason's Happy Place";
+// const char* password = "heWhoHeals15!";
+
+const char* ssid = "Jay jay";
+const char* password = "12345678";
 
 DynamicJsonDocument readDoc(1024);
 DynamicJsonDocument writeDoc(1024);
