@@ -3,11 +3,11 @@
 #include <ArduinoJson.h>
 
 // Constants
-// const char* ssid = "Jason's Happy Place";
-// const char* password = "heWhoHeals15!";
+const char* ssid = "Jason's Happy Place";
+const char* password = "heWhoHeals15!";
 
-const char* ssid = "Jay jay";
-const char* password = "12345678";
+// const char* ssid = "Jay jay";
+// const char* password = "12345678";
 
 DynamicJsonDocument readDoc(1024);
 DynamicJsonDocument writeDoc(1024);
@@ -19,6 +19,8 @@ int commandType;
 
 bool powerOn;
 bool pidOn;
+
+int targetVal;
 
 int motorIndex;
 int motorVal;
@@ -55,28 +57,49 @@ void sendJson(){
   webSocket.sendTXT(0, dataOut);
 }
 
+void pidConfig(){
+  targetVal = motorVal;
+  Serial.print("targetVal: ");
+  Serial.print(targetVal);
+}
+
 void changeMotorVal(){
   switch (motorIndex){
     case 0:
       motorFLVal = motorVal;
       Serial.print("motorFLVal: ");
-      Serial.print(motorVal);
+      Serial.print(motorFLVal);
       break;
     case 1:
       motorFRVal = motorVal;
       Serial.print("motorFRVal: ");
-      Serial.print(motorVal);
+      Serial.print(motorFRVal);
       break;
     case 2:
       motorBLVal = motorVal;
       Serial.print("motorBLVal: ");
-      Serial.print(motorVal);
+      Serial.print(motorBLVal);
       break;  
     case 3:
       motorBRVal = motorVal;
       Serial.print("motorBRVal: ");
-      Serial.print(motorVal);
+      Serial.print(motorBRVal);
       break;
+    case 4:
+
+      if(pidOn){
+        pidConfig();
+      }else{
+        motorFLVal = motorVal;
+        motorFRVal = motorVal;
+        motorBLVal = motorVal;
+        motorBRVal = motorVal;
+
+        Serial.print("motorFLVal: ");
+        Serial.print(motorFLVal);
+      }
+
+      break;  
   }
 }
 
@@ -105,7 +128,6 @@ void receiveJson(uint8_t * data){
   }
   
   Serial.println(" ");
-  //sendJson();
 }
 
 // Called when receiving any WebSocket message
@@ -186,6 +208,8 @@ void setup() {
   powerOn = false;
   pidOn = false;
 
+  targetVal = 0;
+
   motorFLVal = 0;
   motorFRVal = 0;
   motorBLVal = 0;
@@ -203,7 +227,7 @@ void loop() {
 
   if(powerOn){
     if(pidOn){
-      if(millis() > timer + 1000){
+      if(millis() > timer + 100){
         timer = millis();
         motorFLVal = random(100);
         motorFRVal = random(100);
