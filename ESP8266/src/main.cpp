@@ -1,6 +1,8 @@
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
+#include <sensorController.h>
+#include <motorController.h>
 
 // Constants
 const char* ssid = "Jason's Happy Place";
@@ -61,6 +63,7 @@ void pidConfig(){
   targetVal = motorVal;
   Serial.print("targetVal: ");
   Serial.print(targetVal);
+  
 }
 
 void changeMotorVal(){
