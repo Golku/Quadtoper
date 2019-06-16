@@ -4,7 +4,6 @@
 class controllerclass{
     public:
         controllerclass();
-        void setup();
         void dataIn(uint8_t * data);
 };
 

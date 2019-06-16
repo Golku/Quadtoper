@@ -5,7 +5,7 @@ class sensorclass{
     public:
         sensorclass();
         void setup();
-        void printOnScreen();
+        void getAngles();
 };
 
 extern sensorclass sensors;

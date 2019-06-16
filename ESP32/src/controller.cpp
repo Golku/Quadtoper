@@ -25,15 +25,11 @@ command:
 controllerclass::controllerclass(){
 }
 
-void controllerclass::setup(){
-    powerOn = false;
-    pidOn = false;
-}
-
 void pidConfig(){
 // targetVal = motorVal;
   Serial.print("targetVal: ");
   Serial.print(targetVal); 
+  motors.setPid(pidOn);
 }
 
 void controllerclass::dataIn(uint8_t * data){
@@ -73,13 +69,19 @@ void setup() {
   // Start Serial port
   Serial.begin(115200);
 
+  powerOn = false;
+  pidOn = false;
+
   server.connect();
+  sensors.setup();
   motors.setup();
+  
 }
 
 void loop() {
 
   server.socketLoop();
+  sensors.getAngles();
 }
 
 controllerclass controller = controllerclass();
