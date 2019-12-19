@@ -5,7 +5,7 @@ class sdclass{
     public:
         sdclass();
         void setup();
-        void logData(char * timeString, int floaterHeight);
+        void logData(char * timeString, double floaterHeight);
 };
 
 extern sdclass sdModule;

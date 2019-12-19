@@ -211,10 +211,10 @@ void sdclass::setup(){
     //     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));      
 }
 
-void sdclass::logData(char * timeString, int floaterHeight){
+void sdclass::logData(char * timeString, double floaterHeight){
 
     char temp[64];
-    snprintf(temp, sizeof temp, "%d", floaterHeight);
+    snprintf(temp, sizeof temp, "%f", floaterHeight);
 
     appendFile(SD, "/log.txt", timeString);
     appendFile(SD, "/log.txt", ",");

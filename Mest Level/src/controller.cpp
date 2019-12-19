@@ -6,8 +6,7 @@
 #include <rtcModuleController.h>
 #include <sdModuleController.h>
 #include <MedianFilter.h>
-
-//#include <Wire.h>
+#include <lcdController.h>
 
 DynamicJsonDocument readDoc(1024);
 DynamicJsonDocument writeDoc(1024);
@@ -16,10 +15,13 @@ int command;
 long currentTime;
 long nextSend;
 int messuredDistance;
-int floaterHeight = 0;
-int floaterHeightCalibrated = 0;
 int maxDistance = 426;
 int offset = 0;
+int floaterHeight = 0;
+double floaterHeightCalibrated = 0;
+double volumeInLiters = 0;
+
+bool showDistance = false;
 
 MedianFilter filterObject(10, 0);
 
@@ -58,7 +60,7 @@ void controllerclass::dataIn(uint8_t * data){
 
 }
 
-int calibration(int floaterHeight){
+double calibration(int floaterHeight){
 
   if(floaterHeight > 15){
     offset = 5;
@@ -68,16 +70,12 @@ int calibration(int floaterHeight){
     offset = 10;
   }
 
-  if(floaterHeight > 168){
+  if(floaterHeight > 145){
     offset = 15;
   }
 
-  if(floaterHeight > 220){
+  if(floaterHeight > 200){
     offset = 20;
-  }
-
-  if(floaterHeight > 290){
-    offset = 15;
   }
 
   if(floaterHeight <= 15){
@@ -87,71 +85,113 @@ int calibration(int floaterHeight){
   return floaterHeight+offset;
 }
 
+void serialCommands(){
+  if(Serial.available() > 0){
+    char letter = Serial.read();
+
+    if(letter == '0'){
+      showDistance = true;
+    }else if(letter == '1'){
+      showDistance = false;
+    }
+  }
+}
+
 void setup() {
 
-  // Start Serial port
   Serial.begin(115200);
-  
+
   sensor.setup();
   //rtcModule.setup();
   //sdModule.setup();
-  //server.connect();
+  lcd.setup();
+  // server.connect();
 }
 
 void loop() {
-  server.socketLoop();
+  //server.socketLoop();
+  serialCommands();
   
   currentTime = millis();
 
   filterObject.in(sensor.getDistance());
 
-  if(server.isConnected()){
+  // if(server.isConnected()){
 
     if(currentTime > nextSend){
 
       messuredDistance = filterObject.out();
 
+      if(showDistance){
+        Serial.print("Distance (mm): "); Serial.print(messuredDistance);
+      }
+
       if(messuredDistance > maxDistance){
         messuredDistance = maxDistance;
       }
 
+      if(showDistance){
+        Serial.print(" Distance after (mm): "); Serial.print(messuredDistance);
+      }
+
       floaterHeight = maxDistance - messuredDistance;
 
-      floaterHeightCalibrated = calibration(floaterHeight);
+      if(showDistance){
+        Serial.print(" Floater Height (mm): "); Serial.print(floaterHeight);
+      }
 
-      // sdModule.logData(rtcModule.getTime(), floaterHeightCalibrated);
+      if(showDistance){
+        Serial.print(" calibrated (mm): "); Serial.println(calibration(floaterHeight));
+      }
 
-      sdModule.logData(rtcModule.getTime(), ((565 * 364 * floaterHeightCalibrated) / 1000000) + 2);
+      floaterHeightCalibrated = calibration(floaterHeight) + 15; //Water + 6 mm
 
-      dataOut(floaterHeightCalibrated);
+      // volumeInLiters = ((565 * 364 * floaterHeightCalibrated) / 1000000); // 6 mm = 1.23
+      volumeInLiters = (0.0005*(floaterHeightCalibrated * floaterHeightCalibrated)) + (0.47*floaterHeightCalibrated);
+
+      //sdModule.logData(rtcModule.getTime(), volumeInLiters);
+
+      lcd.display(floaterHeightCalibrated, volumeInLiters);
+
+      // dataOut(floaterHeightCalibrated);
       
       nextSend = millis() + 1000;
     }
-  }
+  // }
 
   if(currentTime > nextSend){
 
-    messuredDistance = filterObject.out();
+    // messuredDistance = filterObject.out();
 
-    Serial.print("Distance before (mm): "); Serial.print(messuredDistance);
+    // Serial.print("Distance before (mm): "); Serial.println(messuredDistance);
 
-    if(messuredDistance > maxDistance){
-      messuredDistance = maxDistance;
-    }
+    // if(messuredDistance > maxDistance){
+    //   messuredDistance = maxDistance;
+    // }
 
-    Serial.print("  Distance after (mm): "); Serial.println(messuredDistance);
+    // Serial.print("  Distance after (mm): "); Serial.println(messuredDistance);
 
-    floaterHeight = maxDistance - messuredDistance;
+    // floaterHeight = maxDistance - messuredDistance;
 
     // Serial.printf("Current time: %s \n", rtcModule.getTime());
 
     // Serial.print("Floater height before (mm): "); Serial.print(floaterHeight);
     // Serial.print("Floater height after  (mm): "); Serial.println(calibration(floaterHeight));
-    //Serial.print("  L: "); Serial.println(  ((565 * 364 * calibration(floaterHeight)) / 1000000) + 2);
+    // Serial.print("  L: "); Serial.println(  ((565 * 364 * calibration(floaterHeight)) / 1000000) + 2);
+    
+    // floaterHeight++;
 
-    //sdModule.logData(rtcModule.getTime(), 28);;
+    // floaterHeightCalibrated = calibration(floaterHeight);
 
-    nextSend = currentTime + 1000; 
+    // volumeInLiters = ((565 * 364 * floaterHeightCalibrated) / 1000000) + 2;
+
+    // Serial.print("Volume: "); Serial.println(volumeInLiters);
+
+    // lcd.display(floaterHeightCalibrated, volumeInLiters);
+
+    // sdModule.logData(rtcModule.getTime(), volumeInLiters);;
+
+    // nextSend = currentTime + 1000; 
   }
 }
 
